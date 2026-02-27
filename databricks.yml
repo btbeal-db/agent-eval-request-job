@@ -1,0 +1,42 @@
+bundle:
+  name: agent-eval-request-job
+
+include:
+  - resources/*.yml
+
+variables:
+  experiment_id:
+    description: "MLflow experiment ID to pull traces from"
+    default: "3284073597979440"
+
+  num_traces:
+    description: "Number of most recent traces to include in the review session"
+    default: "10"
+
+  reviewer_emails:
+    description: "Comma-separated list of reviewer email addresses (e.g. user1@co.com,user2@co.com)"
+    default: "brennan.beal@databricks.com"
+
+  session_name_prefix:
+    description: "Prefix for the labeling session name (a timestamp is appended automatically)"
+    default: "agent_review"
+
+  uc_catalog:
+    description: "Unity Catalog catalog for storing review datasets"
+    default: "hls_amer_catalog"
+
+  uc_schema:
+    description: "Unity Catalog schema for storing review datasets"
+    default: "appeals-review"
+
+  slack_secret_scope:
+    description: "Databricks secret scope that holds the Slack bot token for notifications"
+    default: "agent-eval-review"
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://fe-vm-hls-amer.cloud.databricks.com
+      profile: FEVM

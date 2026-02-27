@@ -1,0 +1,63 @@
+resources:
+  jobs:
+    agent_eval_review_job:
+      name: "[${bundle.target}] Agent Eval Review Session Creator"
+      description: >
+        Fetches the last N traces from an MLflow experiment and creates
+        a labeling session for business partners to review via the MLflow Review App.
+
+      parameters:
+        - name: notify_users
+          default: "false"
+
+      tasks:
+        - task_key: create_review_session
+          libraries:
+            - pypi:
+                package: "mlflow[databricks]>=3.1.0"
+            - pypi:
+                package: "databricks-agents>=0.16.0"
+            - pypi:
+                package: "slack-sdk>=3.0.0"
+          spark_python_task:
+            python_file: ../src/create_review_session.py
+            parameters:
+              - "--experiment-id"
+              - "${var.experiment_id}"
+              - "--num-traces"
+              - "${var.num_traces}"
+              - "--reviewer-emails"
+              - "${var.reviewer_emails}"
+              - "--session-name-prefix"
+              - "${var.session_name_prefix}"
+              - "--uc-catalog"
+              - "${var.uc_catalog}"
+              - "--uc-schema"
+              - "${var.uc_schema}"
+              - "--slack-secret-scope"
+              - "${var.slack_secret_scope}"
+              - "--notify-users"
+              - "{{job.parameters.notify_users}}"
+
+          # Single-node cluster — this job is I/O-bound (MLflow API calls),
+          # not compute-bound, so a minimal cluster is appropriate.
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: "singleNode"
+              spark.master: "local[*]"
+            data_security_mode: "SINGLE_USER"
+            custom_tags:
+              ResourceClass: "SingleNode"
+
+      # Uncomment and adjust to run on a schedule (e.g. every Monday at 9 AM PT)
+      schedule:
+        quartz_cron_expression: "0 0 9 ? * MON"
+        timezone_id: "America/Los_Angeles"
+        pause_status: "UNPAUSED"
+
+      permissions:
+        - level: CAN_MANAGE_RUN
+          group_name: "users"
