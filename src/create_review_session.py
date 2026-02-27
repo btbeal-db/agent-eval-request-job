@@ -100,22 +100,19 @@ def _init_spark(uc_catalog: str, uc_schema: str):
 
     We only create the schema — catalog creation requires admin privileges and
     a storage location, so the catalog must already exist before running this job.
-    Returns the SparkSession so callers can derive dbutils from it.
     """
     from pyspark.sql import SparkSession
     spark = SparkSession.builder.getOrCreate()
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{uc_catalog}`.`{uc_schema}`")
-    return spark
 
 
-def _get_secret(spark, scope: str, key: str) -> str:
+def _get_secret(scope: str, key: str) -> str:
     """Retrieve a secret from a Databricks secret scope via dbutils."""
-    from pyspark.dbutils import DBUtils
-    return DBUtils(spark).secrets.get(scope=scope, key=key)
+    from databricks.sdk.runtime import dbutils
+    return dbutils.secrets.get(scope=scope, key=key)
 
 
 def _send_slack_notification(
-    spark,
     secret_scope: str,
     session_name: str,
     session_url: str,
@@ -125,7 +122,7 @@ def _send_slack_notification(
     """Send a Slack DM to brennan.beal@databricks.com with a summary of the new session."""
     from slack_sdk import WebClient
 
-    token = _get_secret(spark, secret_scope, "slack-bot-token")
+    token = _get_secret(secret_scope, "slack-bot-token")
     client = WebClient(token=token)
 
     notify_email = "brennan.beal@databricks.com"
@@ -222,7 +219,7 @@ def main() -> None:
 
     # ── 2. Initialise Spark and ensure UC catalog/schema exist ───────────────
     print("Initialising Spark session and ensuring UC catalog/schema exist...")
-    spark = _init_spark(args.uc_catalog, args.uc_schema)
+    _init_spark(args.uc_catalog, args.uc_schema)
 
     # ── 3. Fetch the last N traces ────────────────────────────────────────────
     print(f"Fetching {num_traces} most recent traces from experiment {experiment_id}...")
@@ -253,7 +250,6 @@ def main() -> None:
     if args.notify_users.lower() == "true" and args.slack_secret_scope:
         print("Sending Slack notification...")
         _send_slack_notification(
-            spark=spark,
             secret_scope=args.slack_secret_scope,
             session_name=session_name,
             session_url=labeling_session.url,

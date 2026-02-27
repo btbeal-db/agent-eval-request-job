@@ -10,15 +10,18 @@ resources:
         - name: notify_users
           default: "false"
 
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"
+            dependencies:
+              - "mlflow[databricks]>=3.1.0"
+              - "databricks-agents>=0.16.0"
+              - "slack-sdk>=3.0.0"
+
       tasks:
         - task_key: create_review_session
-          libraries:
-            - pypi:
-                package: "mlflow[databricks]>=3.1.0"
-            - pypi:
-                package: "databricks-agents>=0.16.0"
-            - pypi:
-                package: "slack-sdk>=3.0.0"
+          environment_key: default
           spark_python_task:
             python_file: ../src/create_review_session.py
             parameters:
@@ -38,19 +41,6 @@ resources:
               - "${var.slack_secret_scope}"
               - "--notify-users"
               - "{{job.parameters.notify_users}}"
-
-          # Single-node cluster — this job is I/O-bound (MLflow API calls),
-          # not compute-bound, so a minimal cluster is appropriate.
-          new_cluster:
-            spark_version: "15.4.x-scala2.12"
-            node_type_id: "i3.xlarge"
-            num_workers: 0
-            spark_conf:
-              spark.databricks.cluster.profile: "singleNode"
-              spark.master: "local[*]"
-            data_security_mode: "SINGLE_USER"
-            custom_tags:
-              ResourceClass: "SingleNode"
 
       # Uncomment and adjust to run on a schedule (e.g. every Monday at 9 AM PT)
       schedule:
