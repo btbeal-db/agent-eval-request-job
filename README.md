@@ -44,7 +44,9 @@ Set these up at [api.slack.com/apps](https://api.slack.com/apps) under **OAuth &
 
 ## Job Parameters
 
-All parameters are configurable as DAB variables in `databricks.yml`:
+### Deploy-time Variables
+
+Configured in `databricks.yml` and baked in at `databricks bundle deploy`. Override with `-v key=value` at deploy time.
 
 | Parameter              | Variable              | Default                        | Description                                              |
 |------------------------|-----------------------|--------------------------------|----------------------------------------------------------|
@@ -55,7 +57,14 @@ All parameters are configurable as DAB variables in `databricks.yml`:
 | `--uc-catalog`         | `uc_catalog`          | `hls_amer_catalog`             | Unity Catalog catalog for storing review datasets        |
 | `--uc-schema`          | `uc_schema`           | `appeals-review`               | Unity Catalog schema for storing review datasets         |
 | `--slack-secret-scope` | `slack_secret_scope`  | `agent-eval-review`            | Databricks secret scope holding the Slack bot token      |
-| `--notify-users`       | `notify_users`        | `false`                        | Set to `true` to send a Slack DM after session creation  |
+
+### Runtime Parameters
+
+Configured as a Databricks job parameter in `resources/eval_review_job.yml`. Override with `--params key=value` at run time — no redeployment needed.
+
+| Parameter        | Job Parameter  | Default  | Description                                             |
+|------------------|----------------|----------|---------------------------------------------------------|
+| `--notify-users` | `notify_users` | `false`  | Set to `true` to send a Slack DM after session creation |
 
 ## Deployment
 
@@ -66,9 +75,8 @@ databricks bundle deploy --profile FEVM
 # Run manually
 databricks bundle run agent_eval_review_job --profile FEVM
 
-# Run with Slack notifications enabled
-databricks bundle run agent_eval_review_job --profile FEVM \
-  -v notify_users=true
+# Run with Slack notifications enabled (runtime override — no redeploy needed)
+databricks bundle run agent_eval_review_job --profile FEVM --params notify_users=true
 ```
 
 ## Schedule
